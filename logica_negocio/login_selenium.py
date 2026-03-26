@@ -6,7 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 
-def login_Selenium(email, password):
+def login_y_navegar_trayectoria(email, password):
     # Inicializar Chrome
     service = Service()
     driver = webdriver.Chrome(service=service)
@@ -16,50 +16,36 @@ def login_Selenium(email, password):
     try:
         # --- 1. LOGIN ---
         WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "Email"))
+            EC.presence_of_element_located((By.NAME, "Email"))
         )
-        driver.find_element(By.ID, "Email").send_keys(email)
-        driver.find_element(By.ID, "Password").send_keys(password)
+        driver.find_element(By.NAME, "Email").send_keys(email)
+        driver.find_element(By.NAME, "Password").send_keys(password)
         driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
-        print("Intentando iniciar sesión...")
-
-        # Esperar que cargue la barra de navegación
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.LINK_TEXT, "Tutorías"))
-        )
-        print("Inicio de sesión exitoso.")
+        print("Iniciando sesión...")
 
         # --- 2. DESPLEGAR MENÚ “Tutorías” ---
-        tutorias_menu = driver.find_element(By.LINK_TEXT, "Tutorías")
+        tutorias_menu = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Tutorías')]"))
+        )
         ActionChains(driver).move_to_element(tutorias_menu).perform()
-        print("Menú 'Tutorías' desplegado.")
+        tutorias_menu.click()
 
         # --- 3. CLIC EN “Trayectoria Escolar por Tutorado” ---
         trayectoria_link = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.LINK_TEXT, "Trayectoria Escolar por Tutorado"))
+            EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, 'TrayectoriaTutorado')]"))
         )
         trayectoria_link.click()
-        print("Entrando a 'Trayectoria Escolar por Tutorado'...")
-        time.sleep(3)
-
-        # --- 4. CLIC EN BOTÓN “Historial académico” ---
-        historial_btn = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//button[@title='Historial académico']"))
+        print("Navegando a la lista de tutorados...")
+        
+        # Esperamos a que la página de trayectoria cargue confirmando que hay una tabla o título
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//h3[contains(text(), 'Tutorados')]|//table"))
         )
-        historial_btn.click()
-        print("Abriendo 'Historial académico'...")
-        time.sleep(3)
 
-        # --- 5. OBTENER HTML FINAL ---
-        html = driver.page_source
-        print("Página del historial académico obtenida correctamente.")
-
-        return driver, html
+        # Retornamos el driver posicionado en la lista de alumnos
+        return driver
 
     except Exception as e:
-        print("Error durante la navegación:", e)
-        return None, None
-
-    finally:
-
-        pass
+        print("Error durante el login o navegación:", e)
+        driver.quit()
+        return None
